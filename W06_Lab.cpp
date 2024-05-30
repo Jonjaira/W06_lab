@@ -20,7 +20,7 @@ typedef std::string (*queryGeneration_t)(const std::string&, const std::string&)
 
 //This function accepts two input parameters and returns a SQL string
 std::string generate_query(const std::string& username, const std::string& password) {
-    return "SELECT * FROM passwordList WHERE username = '" + username + "' AND password = '" + password + "'";
+    return "SELECT * FROM passwordList WHERE username = '" + username + "' AND password = '" + password + "';";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ std::string escape_input(const std::string& input) {
 std::string generate_query_weak_mitigated(const std::string& username, const std::string& password) {
     std::string user = escape_input(username);
     std::string pass = escape_input(password);
-    return "SELECT * FROM passwordList WHERE username = '" + user + "' AND password = '" + pass + "'";
+    return "SELECT * FROM passwordList WHERE username = '" + user + "' AND password = '" + pass + "';";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ public:
                 result.replace(pos, placeholder.length(), pair.second);
             }
         }
-        return result;
+        return result + ";";
     }
 
 private:
