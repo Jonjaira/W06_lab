@@ -1,3 +1,29 @@
+/**
+  ********************************************************************************************************************
+  * Group 1: Jessica Vargas
+  *          Brycen Williams
+  *          Cameron Christensen
+  *          Arunas Rancevas  
+  * 
+  ********************************************************************************************************************
+
+
+  * LAB 06. SQL INJECTION MITIGATION
+  * This program simulates command injection attacks (Tautology, Additional Statement, Comment Attacks, and Union 
+  * Queries). This program contains a function that accepts two input parameters, in this case a user name and a
+  * password and returns a SQL string similar to the one presented in the textbook. It has a collection of text cases 
+  * that will demonstrate the function is vulnerable to the aforementioned attacks. A weak mitigation function and  
+  * a strong mitigation function for each of these attacks were also created.
+  * 
+  * 
+  ********************************************************************************************************************
+  */
+
+
+
+
+
+
 #include <iostream>
 #include <vector>
 #include <utility>
@@ -24,12 +50,12 @@ std::string generate_query(const std::string& username, const std::string& passw
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                    __        __         _      __  __ _ _   _             _           _
-//                    \ \      / /__  __ _| | __ |  \/  (_) |_(_) __ _  __ _| |_ ___  __| |
-//                     \ \ /\ / / _ \/ _` | |/ / | |\/| | | __| |/ _` |/ _` | __/ _ \/ _` |
-//                      \ V  V /  __/ (_| |   <  | |  | | | |_| | (_| | (_| | ||  __/ (_| |
-//                       \_/\_/ \___|\__,_|_|\_\ |_|  |_|_|\__|_|\__, |\__,_|\__\___|\__,_|
-//                                                               |___/
+//                __        __         _      __  __ _ _   _             _   _             
+//                \ \      / /__  __ _| | __ |  \/  (_) |_(_) __ _  __ _| |_(_) ___  _ __  
+//                 \ \ /\ / / _ \/ _` | |/ / | |\/| | | __| |/ _` |/ _` | __| |/ _ \| '_ \ 
+//                  \ V  V /  __/ (_| |   <  | |  | | | |_| | (_| | (_| | |_| | (_) | | | |
+//                   \_/\_/ \___|\__,_|_|\_\ |_|  |_|_|\__|_|\__, |\__,_|\__|_|\___/|_| |_|
+//                                                           |___/                         
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::string escape_input(const std::string& input) {
     std::string escaped_input;
@@ -43,19 +69,21 @@ std::string escape_input(const std::string& input) {
     return escaped_input;
 }
 
-std::string generate_query_weak_mitigated(const std::string& username, const std::string& password) {
+std::string generate_query_weak_mitigation(const std::string& username, const std::string& password) {
     std::string user = escape_input(username);
     std::string pass = escape_input(password);
     return "SELECT * FROM passwordList WHERE username = '" + user + "' AND password = '" + pass + "';";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                    ____  _                           __  __ _ _   _             _           _
-//                   / ___|| |_ _ __ ___  _ __   __ _  |  \/  (_) |_(_) __ _  __ _| |_ ___  __| |
-//                   \___ \| __| '__/ _ \| '_ \ / _` | | |\/| | | __| |/ _` |/ _` | __/ _ \/ _` |
-//                    ___) | |_| | | (_) | | | | (_| | | |  | | | |_| | (_| | (_| | ||  __/ (_| |
-//                   |____/ \__|_|  \___/|_| |_|\__, | |_|  |_|_|\__|_|\__, |\__,_|\__\___|\__,_|
-//                                              |___/                  |___/
+//                  _____ _                           __  __ _ _   _             _   _             
+//                 / ____| |                         |  \/  (_) | (_)           | | (_)            
+//                | (___ | |_ _ __ ___  _ __   __ _  | \  / |_| |_ _  __ _  __ _| |_ _  ___  _ __  
+//                 \___ \| __| '__/ _ \| '_ \ / _` | | |\/| | | __| |/ _` |/ _` | __| |/ _ \| '_ \ 
+//                 __ _) | |_| | | (_) | | | | (_| | | |  | | | |_| | (_| | (_| | |_| | (_) | | | |
+//                |_____/ \__|_|  \___/|_| |_|\__, | |_|  |_|_|\__|_|\__, |\__,_|\__|_|\___/|_| |_|
+//                                             __/ |                  __/ |                        
+//                                            |___/                  |___/                         
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /* This section provides strong mitigation through a simplified implementation of a prepared statement. It
  * provides strong mitigation against tautology attacks because it separates the SQL query structure from the data. The
@@ -110,7 +138,7 @@ private:
     std::map<int, std::string> m_parameters;
 };
 
-std::string generate_query_strong_mitigated(const std::string& username, const std::string& password) {
+std::string generate_query_strong_mitigation(const std::string& username, const std::string& password) {
     PreparedStatement stmt("SELECT * FROM passwordList WHERE username = ?1 AND password = ?2");
     stmt.setParameter(1, username);
     stmt.setParameter(2, password);
@@ -162,10 +190,10 @@ void test_attacks(queryGeneration_t queryGenerationFunction) {
         {"' OR 'a'='a' -- ", "any_password"},
 
         // A d d i t i o n a l   S t a t e m e n t   T e s t   C a s e s
-	{"username", "nothing'; INSERT INTO passwordList (name, passwd) VALUES 'Bob', '1234'"},
-	{"username", "nothing'; SELECT username, password from users"},
-	{"username", "nothing'; DROP TABLE users"},
-	{"username", "nothing'; TRUNCATE TABLE users"},
+        {"username", "nothing'; INSERT INTO passwordList (name, passwd) VALUES 'Bob', '1234'"},
+        {"username", "nothing'; SELECT username, password from users"},
+        {"username", "nothing'; DROP TABLE users"},
+        {"username", "nothing'; TRUNCATE TABLE users"},
         // C o m m e n t   A t t a c k s   T e s t   C a s e s
 
         // U n i o n   Q u  e r i e s   T e s t   C a s e s
@@ -202,11 +230,11 @@ int main() {
                 break;
             }
             case 3: {
-                test_attacks(generate_query_weak_mitigated);
+                test_attacks(generate_query_weak_mitigation);
                 break;
             }
             case 4: {
-                test_attacks(generate_query_strong_mitigated);
+                test_attacks(generate_query_strong_mitigation);
                 break;
             }
             default:
