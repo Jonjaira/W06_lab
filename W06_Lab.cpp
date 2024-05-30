@@ -158,7 +158,10 @@ void test_attacks(queryGeneration_t queryGenerationFunction) {
         {"' OR 'a'='a' -- ", "any_password"},
 
         // A d d i t i o n a l   S t a t e m e n t   T e s t   C a s e s
-
+	{"username", "nothing'; INSERT INTO passwordList (name, passwd) VALUES 'Bob', '1234';"},
+	{"username", "nothing'; SELECT username, password from users;"},
+	{"username", "nothing'; DROP TABLE users;"},
+	{"username", "nothing'; TRUNCATE TABLE users;"},
         // C o m m e n t   A t t a c k s   T e s t   C a s e s
 
         // U n i o n   Q u  e r i e s   T e s t   C a s e s
