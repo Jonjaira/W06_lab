@@ -57,7 +57,7 @@ std::string generate_query_weak_mitigated(const std::string& username, const std
 //                   |____/ \__|_|  \___/|_| |_|\__, | |_|  |_|_|\__|_|\__, |\__,_|\__\___|\__,_|
 //                                              |___/                  |___/
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/* This section provides strong mitigation because it provides a simplified implementation of a prepared statement. It
+/* This section provides strong mitigation through a simplified implementation of a prepared statement. It
  * provides strong mitigation against tautology attacks because it separates the SQL query structure from the data. The
  * PreparedStatement class holds a SQL query string and a map of parameters. The setParameter method is used to set the
  * value of a parameter as well as to provide some sanitization by removing (not allowing spaces), and the getQuery method
