@@ -20,7 +20,7 @@ typedef std::string (*queryGeneration_t)(const std::string&, const std::string&)
 
 //This function accepts two input parameters and returns a SQL string
 std::string generate_query(const std::string& username, const std::string& password) {
-    return "SELECT * FROM passwordList WHERE username = '" + username + "' AND password = '" + password + "'";
+    return "SELECT * FROM passwordList WHERE username = '" + username + "' AND password = '" + password + "';";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ std::string escape_input(const std::string& input) {
 std::string generate_query_weak_mitigated(const std::string& username, const std::string& password) {
     std::string user = escape_input(username);
     std::string pass = escape_input(password);
-    return "SELECT * FROM passwordList WHERE username = '" + user + "' AND password = '" + pass + "'";
+    return "SELECT * FROM passwordList WHERE username = '" + user + "' AND password = '" + pass + "';";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,6 +70,7 @@ public:
 
     void setParameter(int parameterIndex, const std::string& value) {
         m_parameters[parameterIndex] = removeSpaces("'" + escape(value) + "'");
+	m_parameters[parameterIndex] = removeSemiColons(m_parameters[parameterIndex]);
     }
 
     std::string getQuery() const {
@@ -81,7 +82,7 @@ public:
                 result.replace(pos, placeholder.length(), pair.second);
             }
         }
-        return result;
+        return result + ";";
     }
 
 private:
@@ -101,7 +102,10 @@ private:
         str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
         return str;
     }
-
+    std::string removeSemiColons(std::string str) {
+	str.erase(remove(str.begin(), str.end(), ';'), str.end());
+    	return str;
+    }
     std::string m_query;
     std::map<int, std::string> m_parameters;
 };
@@ -158,7 +162,10 @@ void test_attacks(queryGeneration_t queryGenerationFunction) {
         {"' OR 'a'='a' -- ", "any_password"},
 
         // A d d i t i o n a l   S t a t e m e n t   T e s t   C a s e s
-
+	{"username", "nothing'; INSERT INTO passwordList (name, passwd) VALUES 'Bob', '1234'"},
+	{"username", "nothing'; SELECT username, password from users"},
+	{"username", "nothing'; DROP TABLE users"},
+	{"username", "nothing'; TRUNCATE TABLE users"},
         // C o m m e n t   A t t a c k s   T e s t   C a s e s
 
         // U n i o n   Q u  e r i e s   T e s t   C a s e s
