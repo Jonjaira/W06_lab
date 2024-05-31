@@ -203,7 +203,12 @@ void test_attacks(queryGeneration_t queryGenerationFunction) {
         {"username", "nothing'; DROP TABLE users"},
         {"username", "nothing'; TRUNCATE TABLE users"},
         // C o m m e n t   A t t a c k s   T e s t   C a s e s
-
+	{"username", "password' -- "},
+    	{"username", "password' /* comment */"},
+    	{"username", "password' #"},
+    	{"username", "password'; --"},
+    	{"username", "' OR 1=1 --"},
+    	{"username", "'; --"}
         // U n i o n   Q u  e r i e s   T e s t   C a s e s
         {"username", "nothing' UNION SELECT authenticate FROM passwordList"},
         {"username", "testpass' UNION SELECT authenticate FROM passwordList"},
