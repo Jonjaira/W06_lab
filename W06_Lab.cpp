@@ -32,7 +32,7 @@
 #include <cctype>
 #include <map>
 #include <algorithm>
-
+#include <regex>
 typedef std::string (*queryGeneration_t)(const std::string&, const std::string&);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -99,6 +99,7 @@ public:
     void setParameter(int parameterIndex, const std::string& value) {
         m_parameters[parameterIndex] = removeSpaces("'" + escape(value) + "'");
 	m_parameters[parameterIndex] = removeSemiColons(m_parameters[parameterIndex]);
+        m_parameters[parameterIndex] = removeUnion(m_parameters[parameterIndex]);
     }
 
     std::string getQuery() const {
@@ -134,6 +135,13 @@ private:
 	str.erase(remove(str.begin(), str.end(), ';'), str.end());
     	return str;
     }
+    
+    // Function to remove the word union from a query so that a UNION query injection can't take place.
+    std::string removeUnion(std::string str) {
+        std::regex union_regex("\\b(union|UNION|UnIoN|uNiOn)\\b");
+        return std::regex_replace(str, union_regex, "");
+    }
+    
     std::string m_query;
     std::map<int, std::string> m_parameters;
 };
@@ -144,7 +152,7 @@ std::string generate_query_strong_mitigation(const std::string& username, const 
     stmt.setParameter(2, password);
     return stmt.getQuery();
 }
-
+    
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                     ____       _       _             _   _____         _
 //                    /  _ \ _ __(_) __ _(_)_ __   __ _| | |_   _|__  ___| |_
