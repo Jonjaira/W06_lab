@@ -35,6 +35,65 @@
 #include <regex>
 typedef std::string (*queryGeneration_t)(const std::string&, const std::string&);
 
+static std::vector<std::tuple<std::string, std::string, std::string>> test_cases_weak = {
+    // Tautology Test Cases
+    {"admin' -- ", "any_password",       "SELECT * FROM passwordList WHERE username = 'admin'' -- ' AND password = 'any_password';"},
+    {"admin' OR '1'='1", "any_password", "SELECT * FROM passwordList WHERE username = 'admin'' OR ''1''=''1' AND password = 'any_password';"},
+    {"admin' OR 'a'='a", "any_password", "SELECT * FROM passwordList WHERE username = 'admin'' OR ''a''=''a' AND password = 'any_password';"},
+    {"' OR '1'='1' -- ", "any_password", "SELECT * FROM passwordList WHERE username = ''' OR ''1''=''1'' -- ' AND password = 'any_password';"},
+    {"' OR 'a'='a' -- ", "any_password", "SELECT * FROM passwordList WHERE username = ''' OR ''a''=''a'' -- ' AND password = 'any_password';"},
+
+    // Additional Statement Attack Test Cases
+    {"username", "nothing'; INSERT INTO passwordList (name, passwd) VALUES 'Bob', '1234'", "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''; INSERT INTO passwordList (name, passwd) VALUES ''Bob'', ''1234''';"},
+    {"username", "nothing'; SELECT username, password from users",                         "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''; SELECT username, password from users';"},
+    {"username", "nothing'; DROP TABLE users",                                             "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''; DROP TABLE users';"},
+    {"username", "nothing'; TRUNCATE TABLE users",                                         "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''; TRUNCATE TABLE users';"},
+
+    // Comment Attacks Test Cases
+    {"username", "password' -- ",           "SELECT * FROM passwordList WHERE username = 'username' AND password = 'password'' -- ';"},
+    {"username", "password' /* comment */", "SELECT * FROM passwordList WHERE username = 'username' AND password = 'password'' /* comment */';"},
+    {"username", "password' #",             "SELECT * FROM passwordList WHERE username = 'username' AND password = 'password'' #';"},
+    {"username", "password'; --",           "SELECT * FROM passwordList WHERE username = 'username' AND password = 'password''; --';"},
+    {"username", "' OR 1=1 --",             "SELECT * FROM passwordList WHERE username = 'username' AND password = ''' OR 1=1 --';"},
+    {"username", "'; --",                   "SELECT * FROM passwordList WHERE username = 'username' AND password = '''; --';"},
+
+    // Union Queries Attack Test Cases
+    {"username", "nothing' UNION SELECT authenticate FROM passwordList",  "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing'' UNION SELECT authenticate FROM passwordList';"},
+    {"username", "testpass' UNION SELECT authenticate FROM passwordList", "SELECT * FROM passwordList WHERE username = 'username' AND password = 'testpass'' UNION SELECT authenticate FROM passwordList';"},
+    {"testuser", "nothing' UNION SELECT authenticate FROM passwordList",  "SELECT * FROM passwordList WHERE username = 'testuser' AND password = 'nothing'' UNION SELECT authenticate FROM passwordList';"},
+    {"testuser", "testpass' UNION SELECT authenticate FROM passwordList", "SELECT * FROM passwordList WHERE username = 'testuser' AND password = 'testpass'' UNION SELECT authenticate FROM passwordList';"},
+};
+
+static std::vector<std::tuple<std::string, std::string, std::string>> test_cases_strong = {
+    // Tautology Test Cases
+    {"admin' -- ",       "any_password", "SELECT * FROM passwordList WHERE username = 'admin''--' AND password = 'any_password';"},
+    {"admin' OR '1'='1", "any_password", "SELECT * FROM passwordList WHERE username = 'admin''OR''1''=''1' AND password = 'any_password';"},
+    {"admin' OR 'a'='a", "any_password", "SELECT * FROM passwordList WHERE username = 'admin''OR''a''=''a' AND password = 'any_password';"},
+    {"' OR '1'='1' -- ", "any_password", "SELECT * FROM passwordList WHERE username = '''OR''1''=''1''--' AND password = 'any_password';"},
+    {"' OR 'a'='a' -- ", "any_password", "SELECT * FROM passwordList WHERE username = '''OR''a''=''a''--' AND password = 'any_password';"},
+
+    // Additional Statement Attack Test Cases
+    {"username", "nothing'; INSERT INTO passwordList (name, passwd) VALUES 'Bob', '1234'", "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''INSERTINTOpasswordList(name,passwd)VALUES''Bob'',''1234''';"},
+    {"username", "nothing'; SELECT username, password from users",                         "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''SELECTusername,passwordfromusers';"},
+    {"username", "nothing'; DROP TABLE users",                                             "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''DROPTABLEusers';"},
+    {"username", "nothing'; TRUNCATE TABLE users",                                         "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''TRUNCATETABLEusers';"},
+
+    // Comment Attacks Test Cases
+    {"username", "password' -- ",           "SELECT * FROM passwordList WHERE username = 'username' AND password = 'password''--';"},
+    {"username", "password' /* comment */", "SELECT * FROM passwordList WHERE username = 'username' AND password = 'password''/*comment*/';"},
+    {"username", "password' #",             "SELECT * FROM passwordList WHERE username = 'username' AND password = 'password''#';"},
+    {"username", "password'; --",           "SELECT * FROM passwordList WHERE username = 'username' AND password = 'password''--';"},
+    {"username", "' OR 1=1 --",             "SELECT * FROM passwordList WHERE username = 'username' AND password = '''OR1=1--';"},
+    {"username", "'; --",                   "SELECT * FROM passwordList WHERE username = 'username' AND password = '''--';"},
+
+    // Union Queries Attack Test Cases
+    {"username", "nothing' UNION SELECT authenticate FROM passwordList",  "SELECT * FROM passwordList WHERE username = 'username' AND password = 'nothing''UNIONSELECTauthenticateFROMpasswordList';"},
+    {"username", "testpass' UNION SELECT authenticate FROM passwordList", "SELECT * FROM passwordList WHERE username = 'username' AND password = 'testpass''UNIONSELECTauthenticateFROMpasswordList';"},
+    {"testuser", "nothing' UNION SELECT authenticate FROM passwordList",  "SELECT * FROM passwordList WHERE username = 'testuser' AND password = 'nothing''UNIONSELECTauthenticateFROMpasswordList';"},
+    {"testuser", "testpass' UNION SELECT authenticate FROM passwordList", "SELECT * FROM passwordList WHERE username = 'testuser' AND password = 'testpass''UNIONSELECTauthenticateFROMpasswordList';"},
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                               ____       _       _             _
 //                              /  _ \ _ __(_) __ _(_)_ __   __ _| |
@@ -98,7 +157,7 @@ public:
 
     void setParameter(int parameterIndex, const std::string& value) {
         m_parameters[parameterIndex] = removeSpaces("'" + escape(value) + "'");
-	m_parameters[parameterIndex] = removeSemiColons(m_parameters[parameterIndex]);
+        m_parameters[parameterIndex] = removeSemiColons(m_parameters[parameterIndex]);
         m_parameters[parameterIndex] = removeUnion(m_parameters[parameterIndex]);
     }
 
@@ -132,8 +191,8 @@ private:
         return str;
     }
     std::string removeSemiColons(std::string str) {
-	str.erase(remove(str.begin(), str.end(), ';'), str.end());
-    	return str;
+    str.erase(remove(str.begin(), str.end(), ';'), str.end());
+        return str;
     }
     
     // Function to remove the word union from a query so that a UNION query injection can't take place.
@@ -188,38 +247,15 @@ void test_query_generation() {
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void test_attacks(queryGeneration_t queryGenerationFunction) {
-    std::vector<std::pair<std::string, std::string>> test_cases = {
-        // T a u t o l o g y   T e s t   C a s e s
-        {"admin' -- ", "any_password"},
-        {"admin' OR '1'='1", "any_password"},
-        {"admin' OR 'a'='a", "any_password"},
-        {"' OR '1'='1' -- ", "any_password"},
-        {"' OR 'a'='a' -- ", "any_password"},
-
-        // A d d i t i o n a l   S t a t e m e n t   T e s t   C a s e s
-        {"username", "nothing'; INSERT INTO passwordList (name, passwd) VALUES 'Bob', '1234'"},
-        {"username", "nothing'; SELECT username, password from users"},
-        {"username", "nothing'; DROP TABLE users"},
-        {"username", "nothing'; TRUNCATE TABLE users"},
-        // C o m m e n t   A t t a c k s   T e s t   C a s e s
-	{"username", "password' -- "},
-    	{"username", "password' /* comment */"},
-    	{"username", "password' #"},
-    	{"username", "password'; --"},
-    	{"username", "' OR 1=1 --"},
-    	{"username", "'; --"}
-        // U n i o n   Q u  e r i e s   T e s t   C a s e s
-        {"username", "nothing' UNION SELECT authenticate FROM passwordList"},
-        {"username", "testpass' UNION SELECT authenticate FROM passwordList"},
-        {"testuser", "nothing' UNION SELECT authenticate FROM passwordList"},
-        {"testuser", "testpass' UNION SELECT authenticate FROM passwordList"},
-    };
-
-    for (auto& test_case : test_cases) {
-        std::string query = queryGenerationFunction(test_case.first, test_case.second);
-        std::cout << "Username: \e[93m" << test_case.first << "\e[0m, Password: \e[93m" << test_case.second << "\e[0m\n";
-        std::cout << "Generated Query: \e[96m" << query << "\e[0m\n\n";
+void test_attacks(queryGeneration_t queryGenerationFunction,
+                  std::vector<std::tuple<std::string, std::string, std::string>> test_cases) {
+    for (const auto& test_case : test_cases) {
+        std::string query = queryGenerationFunction(std::get<0>(test_case), std::get<1>(test_case));
+        std::string expected = std::get<2>(test_case);
+        std::cout << "Username: \e[93m" << std::get<0>(test_case) << "\e[0m, Password: \e[93m" << std::get<1>(test_case) << "\e[0m\n";
+        std::cout << "Generated Query: \e[96m" << query << "\e[0m\n";
+        std::cout << " Expected Query: \e[95m" << expected << "\e[0m\n";
+        printf("         Result: %s\n\n", query == expected? "\e[92mPASS\e[0m" : "\e[91mFAIL\e[0m");
     }
 }
 
@@ -228,9 +264,10 @@ int main() {
         std::cout << "\nMenu:\n";
         std::cout << "1. Run original function test cases\n";
         std::cout << "2. Run attack test cases on original\n";
-        std::cout << "3. Run attack test cases on weak mitigated\n";
-        std::cout << "4. Run attack test cases on strong mitigated\n";
-        std::cout << "5. Exit\n";
+        std::cout << "3. Run attack test cases on weak mitigation, weak results\n";
+        std::cout << "4. Run attack test cases on weak mitigation, strong results\n";
+        std::cout << "5. Run attack test cases on strong mitigated\n";
+        std::cout << "6. Exit\n";
         std::cout << "Enter your choice: ";
         int choice;
         std::cin >> choice;
@@ -243,15 +280,20 @@ int main() {
                 break;
             }
             case 2: {
-                test_attacks(generate_query);
+                test_attacks(generate_query, test_cases_weak);
+                test_attacks(generate_query, test_cases_strong);
                 break;
             }
             case 3: {
-                test_attacks(generate_query_weak_mitigation);
+                test_attacks(generate_query_weak_mitigation, test_cases_weak);
                 break;
             }
             case 4: {
-                test_attacks(generate_query_strong_mitigation);
+                test_attacks(generate_query_weak_mitigation, test_cases_strong);
+                break;
+            }
+            case 5: {
+                test_attacks(generate_query_strong_mitigation, test_cases_strong);
                 break;
             }
             default:
